@@ -218,4 +218,5 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Local market data - do not commit
-Data/
+Data/*
+!Data/.gitkeep
