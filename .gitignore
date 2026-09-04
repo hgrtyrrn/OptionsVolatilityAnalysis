@@ -217,6 +217,5 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Databento market data
-Data/GLBX-*/
-Data/es_futures_mar2020.csv
+# Local market data - do not commit
+Data/
