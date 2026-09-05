@@ -50,13 +50,10 @@ E-mini S&P 500 futures are used as the delta hedge. The model applies:
 The conversion between option delta and the required ES hedge is:
 
 $$
-q^{ES}_t
-=
--\Delta^{option}_t
-\frac{100}{50}
+q_t^{ES} = -\Delta_t^{option}\frac{100}{50}
 $$
 
-where \(q^{ES}_t\) is the target number of ES contract equivalents. Because the theoretical benchmark permits fractional futures, the required hedge can be represented without integer rounding.
+where $$\(q^{ES}_t\)$$ is the target number of ES contract equivalents. Because the theoretical benchmark permits fractional futures, the required hedge can be represented without integer rounding.
 
 ### Strategy Specification
 
@@ -141,52 +138,34 @@ The call and put are valued using the Black-Scholes European-option framework.
 For the call:
 
 $$
-C_t
-=
-S_tN(d_1)
--
-Ke^{-rT_t}N(d_2)
+C_t = S_tN(d_1) - Ke^{-rT_t}N(d_2)
 $$
 
 and for the put:
 
 $$
-P_t
-=
-Ke^{-rT_t}N(-d_2)
--
-S_tN(-d_1)
+P_t = Ke^{-rT_t}N(-d_2) - S_tN(-d_1)
 $$
 
 where
 
 $$
-d_1
-=
-\frac{
-\ln(S_t/K)
-+
-(r+\frac{1}{2}\sigma_t^2)T_t
-}{
-\sigma_t\sqrt{T_t}
-}
+d_1 = \frac{\ln(S_t/K) + (r+\frac{1}{2}\sigma_t^2)T_t}{\sigma_t\sqrt{T_t}}
 $$
 
 and
 
 $$
-d_2
-=
-d_1-\sigma_t\sqrt{T_t}
+d_2 = d_1-\sigma_t\sqrt{T_t}
 $$
 
 with:
 
-* \(S_t\): SPX level;
-* \(K\): fixed 2,880 strike;
-* \(r\): benchmark risk-free rate, set to zero;
-* \(\sigma_t\): VIX9D divided by 100;
-* \(T_t\): remaining calendar time to expiry.
+* $$\(S_t\)$$: SPX level;
+* $$\(K\)$$: fixed 2,880 strike;
+* $$\(r\)$$: benchmark risk-free rate, set to zero;
+* $$\(\sigma_t\)$$: VIX9D divided by 100;
+* $$\(T_t\)$$: remaining calendar time to expiry.
 
 The theoretical straddle value is:
 
@@ -197,9 +176,7 @@ $$
 and dollar option P&L over an interval is:
 
 $$
-P\&L^{option}_t
-=
-(V_t-V_{t-1})\times100
+\text{P\&L}^{option}_t = (V_t-V_{t-1})\times100
 $$
 
 At expiry, the call and put are valued directly at intrinsic value rather than evaluating the Black-Scholes expressions as \(T\rightarrow0\). Gamma and theta are also set to zero after expiry. This provides clean terminal behaviour and avoids numerical instability around zero time to maturity.
@@ -213,68 +190,41 @@ The notebook calculates call and put delta, gamma and annualised theta directly 
 Straddle delta is:
 
 $$
-\Delta^{straddle}_t
-=
-\Delta^{call}_t+\Delta^{put}_t
+\Delta^{straddle}_t =\Delta^{call}_t+\Delta^{put}_t
 $$
 
 and the same-strike call and put gamma combine to:
 
 $$
-\Gamma^{straddle}_t
-=
-2\Gamma_t
+\Gamma^{straddle}_t = 2\Gamma_t
 $$
 
 Straddle theta is:
 
 $$
-\Theta^{straddle}_t
-=
-\Theta^{call}_t+\Theta^{put}_t
+\Theta^{straddle}_t = \Theta^{call}_t+\Theta^{put}_t
 $$
 
 For each interval, the previous observation's Greeks are used to construct a second-order approximation of the option-price change:
 
 $$
-P\&L^{\Delta}_t
-=
-\Delta_{t-1}
-\times100
-\times\Delta S_t
+\text{P\&L}^{\Delta}_t = \Delta_{t-1}\times100\times\Delta S_t
 $$
 
 $$
-P\&L^{\Gamma}_t
-=
-\frac{1}{2}
-\Gamma_{t-1}
-\times100
-\times(\Delta S_t)^2
+\text{P\&L}^{\Gamma}_t = \frac{1}{2}\Gamma_{t-1}\times100\times(\Delta S_t)^2
 $$
 
 $$
-P\&L^{\Theta}_t
-=
-\Theta_{t-1}
-\times100
-\times\Delta t
+\text{P\&L}^{\Theta}_t = \Theta_{t-1}\times100\times\Delta t
 $$
 
-where \(\Delta t\) is measured in calendar years.
+where $$\(\Delta t\)$$ is measured in calendar years.
 
 The residual is then defined as:
 
 $$
-Residual_t
-=
-P\&L^{option}_t
--
-P\&L^{\Delta}_t
--
-P\&L^{\Gamma}_t
--
-P\&L^{\Theta}_t
+Residual_t = \text{P\&L}^{option}_t-\text{P\&L}^{\Delta}_t-\text{P\&L}^{\Gamma}_t-\text{P\&L}^{\Theta}_t
 $$
 
 The residual is deliberately **not** labelled vega P&L. Because the option is repriced each day using a changing VIX9D input, the residual can contain the effect of volatility-input changes, higher-order Greeks, interaction terms and error from the discrete second-order approximation.
@@ -282,11 +232,7 @@ The residual is deliberately **not** labelled vega P&L. Because the option is re
 Futures hedge P&L is calculated separately:
 
 $$
-P\&L^{ES}_t
-=
-q^{ES}_{t-1}
-\times50
-\times\Delta F_t
+\text{P\&L}^{ES}_t = q^{ES}_{t-1}\times50\times\Delta F_t
 $$
 
 using the futures quantity actually held during the interval and the settlement change of the contract held over that interval.
@@ -294,13 +240,7 @@ using the futures quantity actually held during the interval and the settlement 
 Total strategy P&L is therefore:
 
 $$
-P\&L^{strategy}_t
-=
-P\&L^{option}_t
-+
-P\&L^{ES}_t
--
-Cost_t
+\text{P\&L}^{strategy}_t = \text{P\&L}^{option}_t + \text{P\&L}^{ES}_t - Cost_t
 $$
 
 This separation is important: Greek attribution explains the theoretical **option-price change**, whereas ES P&L records the performance of the **actual hedge instrument** used by the strategy.
@@ -331,9 +271,7 @@ The futures quantity held at the start of an interval earns that interval's hedg
 For every observation, the notebook verifies numerically that:
 
 $$
-Delta + Gamma + Theta + Residual
-=
-Option\ P\&L
+Delta + Gamma + Theta + Residual = Option\ \text{P\&L}
 $$
 
 using tight numerical tolerances. The backtest raises an exception if the attribution does not reconcile.
@@ -366,7 +304,7 @@ The theoretical benchmark produces the following strategy-level results over 10â
 | Initial VIX9D proxy     |                      57.39% |
 | Realised SPX volatility |                     117.95% |
 
-Realised SPX volatility is calculated from the sample standard deviation of daily SPX log returns over the backtest window and annualised using \(\sqrt{252}\).
+Realised SPX volatility is calculated from the sample standard deviation of daily SPX log returns over the backtest window and annualised using $$\(\sqrt{252}\)$$.
 
 The option-price attribution generated by the previous-period Greeks is:
 
