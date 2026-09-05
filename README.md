@@ -176,7 +176,7 @@ $$
 and dollar option P&L over an interval is:
 
 $$
-\text{P\&L}^{option}_t = (V_t-V_{t-1})\times100
+\text{P\\&L}^{option}_t = (V_t-V_{t-1})\times100
 $$
 
 At expiry, the call and put are valued directly at intrinsic value rather than evaluating the Black-Scholes expressions as \(T\rightarrow0\). Gamma and theta are also set to zero after expiry. This provides clean terminal behaviour and avoids numerical instability around zero time to maturity.
@@ -208,15 +208,15 @@ $$
 For each interval, the previous observation's Greeks are used to construct a second-order approximation of the option-price change:
 
 $$
-\text{P\&L}^{\Delta}_t = \Delta_{t-1}\times100\times\Delta S_t
+\text{P\\&L}^{\Delta}_t = \Delta_{t-1}\times100\times\Delta S_t
 $$
 
 $$
-\text{P\&L}^{\Gamma}_t = \frac{1}{2}\Gamma_{t-1}\times100\times(\Delta S_t)^2
+\text{P\\&L}^{\Gamma}_t = \frac{1}{2}\Gamma_{t-1}\times100\times(\Delta S_t)^2
 $$
 
 $$
-\text{P\&L}^{\Theta}_t = \Theta_{t-1}\times100\times\Delta t
+\text{P\\&L}^{\Theta}_t = \Theta_{t-1}\times100\times\Delta t
 $$
 
 where $$\(\Delta t\)$$ is measured in calendar years.
@@ -224,7 +224,7 @@ where $$\(\Delta t\)$$ is measured in calendar years.
 The residual is then defined as:
 
 $$
-Residual_t = \text{P\&L}^{option}_t-\text{P\&L}^{\Delta}_t-\text{P\&L}^{\Gamma}_t-\text{P\&L}^{\Theta}_t
+Residual_t = \text{P\\&L}^{option}_t-\text{P\\&L}^{\Delta}_t-\text{P\\&L}^{\Gamma}_t-\text{P\\&L}^{\Theta}_t
 $$
 
 The residual is deliberately **not** labelled vega P&L. Because the option is repriced each day using a changing VIX9D input, the residual can contain the effect of volatility-input changes, higher-order Greeks, interaction terms and error from the discrete second-order approximation.
@@ -232,7 +232,7 @@ The residual is deliberately **not** labelled vega P&L. Because the option is re
 Futures hedge P&L is calculated separately:
 
 $$
-\text{P\&L}^{ES}_t = q^{ES}_{t-1}\times50\times\Delta F_t
+\text{P\\&L}^{ES}_t = q^{ES}_{t-1}\times50\times\Delta F_t
 $$
 
 using the futures quantity actually held during the interval and the settlement change of the contract held over that interval.
@@ -240,7 +240,7 @@ using the futures quantity actually held during the interval and the settlement 
 Total strategy P&L is therefore:
 
 $$
-\text{P\&L}^{strategy}_t = \text{P\&L}^{option}_t + \text{P\&L}^{ES}_t - Cost_t
+\text{P\\&L}^{strategy}_t = \text{P\\&L}^{option}_t + \text{P\\&L}^{ES}_t - Cost_t
 $$
 
 This separation is important: Greek attribution explains the theoretical **option-price change**, whereas ES P&L records the performance of the **actual hedge instrument** used by the strategy.
@@ -271,7 +271,7 @@ The futures quantity held at the start of an interval earns that interval's hedg
 For every observation, the notebook verifies numerically that:
 
 $$
-Delta + Gamma + Theta + Residual = Option\ \text{P\&L}
+Delta + Gamma + Theta + Residual = Option\ \text{P\\&L}
 $$
 
 using tight numerical tolerances. The backtest raises an exception if the attribution does not reconcile.
