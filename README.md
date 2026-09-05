@@ -370,6 +370,15 @@ These limitations define the purpose of the benchmark rather than invalidate it.
 
 ### Objective
 
+
+The executable backtest extends the theoretical fractional-ES benchmark by testing how the strategy behaves when the futures hedge is implemented under more realistic trading constraints.
+
+Its purpose is to measure how much of the theoretical result survives once the idealised hedge is replaced by an implementable approximation. The underlying option position, historical window and core valuation framework remain sufficiently consistent to preserve a meaningful comparison with the theoretical benchmark.
+
+Analysis therefore focuses on the effect of execution realism on strategy P&L, hedge effectiveness and residual directional (delta) exposure - particularly when whole ES contracts prevent each rehedge from returning the position to exact delta neutrality.
+
+This notebook aims to establish a single practical base case, separate to the robustness analysis notebook. 
+
 ### Constraints Introduced
 
 ### Methodology Changes
