@@ -352,7 +352,7 @@ This notebook is intentionally designed as a theoretical benchmark rather than a
 
 * **SPX-ES basis risk remains.** ES futures are a proxy hedge for SPX exposure. Futures-basis changes can therefore cause hedge P&L to differ from the offset implied by a pure movement in the spot index.
 
-* **Futures transaction costs are simplified.** Costs are modelled as a constant $1.25 linear commission per fractional ES contract equivalent. Bid-ask spread, slippage, market impact and liquidity effects are omitted.
+* **Futures transaction costs are simplified.** A linear transaction cost of $1.25 per ES contract equivalent traded is applied to fractional hedge turnover - this is a modelling assumption rather than an estimate of fully executable trading costs. Bid-ask spread, slippage, market impact and liquidity effects are omitted.
 
 * **Option execution is not modelled.** Option bid-ask spreads, execution costs, liquidity and deviations between traded prices and Black-Scholes theoretical marks are excluded.
 
