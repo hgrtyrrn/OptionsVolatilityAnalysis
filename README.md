@@ -1,24 +1,28 @@
 # Options Volatility Analysis
 
-Options Volatility Analysis is a Python-based derivatives research project examining the economics of a dynamically delta-hedged long SPX straddle when implied volatility differs from subsequently realised volatility. The analysis combines Black-Scholes option pricing and Greeks with SPX, VIX9D and E-mini S&P 500 futures data to study how convexity, time decay, dynamic hedge P&L and transaction costs interact over the life of a short-dated option position.
+Options Volatility Analysis is a Python-based derivatives research project examining the economics of a dynamically delta-hedged long SPX straddle when implied volatility differs from realised volatility. The analysis uses Black-Scholes option pricing and Greeks with SPX, VIX9D and E-mini S&P 500 futures data to study how convexity, time decay, dynamic hedge P&L and transaction costs interact over the life of a short-dated option position.
 
-The project is structured as a progression from a controlled theoretical benchmark to an executable approximation and then to formal robustness testing. The completed theoretical benchmark uses fractional ES contract equivalents to remove integer-contract granularity and isolate the mechanics of dynamic delta hedging. It explicitly models contract-specific futures P&L across the March 2020 ES roll, a residual-delta rehedging rule, option repricing through expiry, futures commissions, Greek P&L attribution, terminal hedge closure and reconciliation controls.
+The project is structured as a progression from a controlled theoretical benchmark: `OptionsVolatilityAnalysis_Theoretical_FractionalES.ipynb` to an executable base-case notebook: `OptionsVolatilityAnalysis_ExecutableBacktest.ipynb` and then to formal robustness testing: ``. The theoretical benchmark uses fractional ES contract equivalents to isolate the mechanics of dynamic delta hedging. Due to the fractional ES contracts, a fully delta-neutral position can be created at the time of the rehedge. This leaves no first-order directional exposure to changes in the price of the underlying asset (in this case the S&P 500 index).
 
-The planned executable backtest will progressively relax these simplifying assumptions. Fractional futures will be replaced with integer ES contracts, followed by more realistic commissions, bid-ask spreads and slippage, executable hedge timing, practical roll execution and more realistic treatment of the SPX-ES basis. Where suitable historical data permit, the framework will also incorporate actual option prices or strike-specific implied volatility, capital or margin constraints and more granular intraday hedge execution. Each additional constraint is intended to be introduced separately so that its incremental effect on strategy P&L can be identified.
+It models contract-specific futures P&L across the March 2020 ES roll, a residual-delta rehedging rule (10% SPX-equivalent delta of residual exposure), option repricing through expiry, futures commissions, Greek P&L attribution, terminal hedge closure and reconciliation controls.
 
-Once the theoretical and executable engines are stable, a separate sensitivity framework will test the robustness of results to the delta-rehedge band, transaction costs, volatility assumptions, fractional versus integer hedge granularity and hedge frequency at frequencies supported by the available data. The intended outputs include total P&L, turnover, number of rehedges, transaction costs, residual delta exposure and comparative sensitivity plots and tables. The practical strategy loop is intended to be refactored into a reusable backtest function so that these assumptions can be varied consistently without duplicating the core strategy logic.
+The executable backtest relaxes these simplifying assumptions where possible. Fractional futures are replaced with integer ES contracts, more realistic commissions are introduced and bid-ask spreads and slippage are implemented. The March 2020 ES roll is represented as separate closing and opening transactions and transaction costs are applied to both legs. Limitations that remain are: executable hedge timing and realistic treatment of the SPX-ES basis.
+
+Further extensions to this project could add actual option prices and strike-specific implied volatility (current data constraints prevent this for the chosen backtest window). Intraday hedge execution could also be added in future, with greater data access. These are therefore not included in the notebook and if implemented, would have to be applied to both the theoretical (control) and executable backtest notebooks to ensure a valid comparison to the benchmark (theoretical) model.
+
+A separate sensitivity framework tests the robustness of results to the delta-rehedge band, transaction costs, volatility assumptions, fractional versus integer hedge granularity and hedge frequency at frequencies supported by the available data. The outputs include total P&L, turnover, number of rehedges, transaction costs, residual delta exposure and comparative sensitivity plots and tables.
 
 ## Research Question
 
-How does a dynamically delta-hedged long SPX straddle behave when implied volatility differs from subsequently realised volatility, and how can the resulting P&L be decomposed across delta, gamma, theta, futures hedge P&L, transaction costs and residual repricing effects?
+How does a dynamically delta-hedged long SPX straddle perform when implied volatility differs from realised volatility and how do ES hedging constraints affect P&L, hedge effectiveness and its decomposition inot option Greeks, futures hedge P&L, transaction costs and residual repricing effects?
 
 ## Project Architecture
 
 | Notebook                                   | Purpose                                                                                    | Status         |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------ | -------------- |
 | Theoretical Fractional-ES Benchmark        | Isolates dynamic gamma-scalping mechanics under controlled hedge assumptions               | Complete       |
-| Practical Integer-ES / Executable Backtest | Introduces discrete contract sizing and progressively more realistic execution constraints | In development |
-| Sensitivity Analysis                       | Tests robustness to modelling, volatility, cost and hedge assumptions                      | In development |
+| Practical Integer-ES / Executable Backtest | Introduces discrete contract sizing and more realistic execution constraints | Complete |
+| Sensitivity Analysis                       | Tests robustness to modelling, volatility, cost and hedge assumptions                      | |
 
 ## 1. Theoretical Benchmark
 
@@ -28,24 +32,24 @@ The theoretical benchmark isolates the economics of a dynamically delta-hedged l
 
 The notebook constructs one short-dated SPX straddle and follows the position from 10 March 2020 to expiry on 20 March 2020, a period containing exceptionally large movements in the S&P 500 and short-dated implied volatility. The option position is repriced daily using Black-Scholes with VIX9D as the volatility input, while its changing directional exposure is hedged using E-mini S&P 500 futures.
 
-Fractional ES contract equivalents are deliberately permitted. This removes integer-contract rounding as a source of residual exposure and creates a cleaner benchmark against which the later executable version can be compared. Hedging nevertheless remains discrete: the futures position is changed only when residual SPX-equivalent delta exceeds a defined threshold, when the active futures contract rolls, or when the option expires.
+Fractional ES contract equivalents are deliberately permitted. This removes integer-contract rounding as a source of residual exposure and creates a cleaner benchmark against which the later executable version can be compared. However, hedging remains discrete: the futures position is changed only when residual SPX-equivalent delta exceeds a defined threshold (10% of the value of an SPX contract), when the active futures contract rolls or when the option expires.
 
-The benchmark therefore asks a narrower question than whether a gamma-scalping strategy would have been directly tradable or profitable in practice. Its purpose is to establish a controlled P&L and risk-accounting framework in which option repricing, hedge P&L, convexity, time decay, volatility-input changes and transaction costs can be examined separately.
+The benchmark's purpose is to establish a controlled P&L and risk-accounting framework in which option repricing, hedge P&L, convexity, time decay, volatility-input changes and transaction costs can be examined separately.
 
 ### Instrument Choice
 
-The option position is a long SPX straddle consisting of one European call and one European put with the same strike and expiry. A long straddle provides positive gamma and negative theta while limiting the initial directional exposure of the combined option position, making it suitable for studying the relationship between realised underlying movement, option convexity and the cost of carrying long volatility exposure.
+The option position is a long SPX straddle consisting of one European call and one European put with the same strike and expiry. A long straddle provides positive gamma and negative theta and limits the initial directional exposure of the combined option position, making it suitable for studying the relationship between realised underlying movement, option convexity and the cost of carrying long volatility exposure.
 
-The SPX level at inception is approximately **2,882.23**. The model selects the nearest five-point strike and fixes it for the life of the trade, producing a **2,880 strike** straddle expiring on **20 March 2020**. The strike is not re-centred as the index moves.
+The SPX level at inception is approximately **2,882.23**. The model selects the nearest five-point strike and fixes it for the life of the trade, producing a **2,880 strike** straddle expiring on **20 March 2020**. The strike remains unchanged as the index moves.
 
 E-mini S&P 500 futures are used as the delta hedge. The model applies:
 
-* an SPX option multiplier of **$100 per index point**;
-* an ES futures value of **$50 per index point**;
-* one long SPX straddle;
-* a residual-delta rehedging band of **0.10 SPX-equivalent delta**;
-* a theoretical commission of **$1.25 per ES contract equivalent traded**; and
-* a zero risk-free rate for the benchmark.
+* An SPX option multiplier of **$100 per index point**.
+* An ES futures value of **$50 per index point**.
+* One long SPX straddle.
+* A residual-delta rehedging band of **0.10 SPX-equivalent delta**.
+* A theoretical commission of **$1.25 per ES contract equivalent traded**.
+* A zero risk-free rate for the benchmark.
 
 The conversion between option delta and the required ES hedge is:
 
@@ -61,15 +65,15 @@ At inception, the Black-Scholes delta of the straddle is calculated and converte
 
 For every subsequent market observation:
 
-1. the SPX straddle is repriced using the current SPX level, VIX9D volatility input and remaining time to expiry;
-2. the ES position held at the start of the interval earns settlement-to-settlement futures P&L;
-3. the option-price change is attributed using the previous observation's delta, gamma and theta;
-4. residual SPX-equivalent delta is measured before any new hedge trade;
-5. the hedge is left unchanged unless the residual delta exceeds the configured 0.10 band;
-6. if the band is breached, the position is rebalanced to the exact fractional delta-neutral target;
-7. if the active ES contract changes, the old futures position is closed and the new contract is established explicitly;
-8. transaction costs are charged on the contract-equivalent quantity traded; and
-9. at option expiry, the straddle settles at intrinsic value and the remaining futures hedge is explicitly closed.
+1. The SPX straddle is repriced using the current SPX level, VIX9D volatility input and remaining time to expiry.
+2. The ES position held at the start of the interval earns settlement-to-settlement futures P&L.
+3. The option-price change is attributed using the previous observation's delta, gamma and theta.
+4. Residual SPX-equivalent delta is measured before any new hedge trade.
+5. The hedge is left unchanged unless the residual delta exceeds the configured 0.10 band.
+6. If the band is breached, the position is rebalanced to the exact fractional delta-neutral target.
+7. If the active ES contract changes, the old futures position is closed and the new contract is established explicitly.
+8. Transaction costs are charged on the contract-equivalent quantity traded.
+9. At option expiry, the straddle settles at intrinsic value and the remaining futures hedge is explicitly closed.
 
 This sequencing ensures that the hedge held during an interval earns that interval's futures P&L before any end-of-period rehedge is applied. It also prevents current-period information from being used retrospectively to change the hedge exposure that generated the preceding interval's P&L.
 
@@ -81,14 +85,14 @@ The theoretical benchmark covers **10–20 March 2020** and contains nine aligne
 
 SPX and VIX9D closing data are obtained using `yfinance`:
 
-* `^GSPC` supplies the SPX level used to mark the option position;
+* `^GSPC` supplies the SPX level used to mark the option position.
 * `^VIX9D` supplies the short-dated implied-volatility proxy.
 
 VIX9D is converted from percentage points into decimal volatility before entering the Black-Scholes model. It should be interpreted as a short-dated market volatility proxy rather than the strike-specific implied volatility of the exact 2,880 call and put.
 
 Contract-specific E-mini S&P 500 settlement observations are held locally for:
 
-* March 2020 ES (`ESH20`);
+* March 2020 ES (`ESH20`).
 * June 2020 ES (`ESM20`).
 
 The datasets are aligned on common trading dates. The notebook validates that required observations exist at both trade inception and option expiry, checks for non-positive SPX or volatility inputs, rejects missing or duplicate ES settlement observations and prevents data extending beyond expiry.
@@ -103,29 +107,23 @@ SPX log returns are retained separately for the subsequent realised-volatility c
 
 #### ES Hedge-Price Convention
 
-A data issue arose when constructing the E-mini S&P 500 futures hedge around the March 2020 contract roll. The initial implementation intended to use CME fixing prices for both the March (`ESH20`) and June (`ESM20`) contracts. However, the Databento CME statistics data do not provide a continuous daily fixing series for the June contract over the backtest window; a June fixing is only available on 20 March.
+A data limitation arose when constructing the E-mini S&P 500 futures hedge around the March 2020 contract roll. Databento CME statistics data do not provide a continuous daily fixing series for the June contract (`ESM20`) over the backtest window. Therefore, the the official CME daily settlement prices for March (`ESH20`) and June are used instead. This creates a consistent marking convention without unneccessary intepolation or introducing another proxy.
 
-Rather than interpolate missing observations, forward-fill another contract's fixing or construct an arbitrary intraday proxy, the benchmark uses the official CME daily settlement price as the hedge mark for both contracts. Settlement observations are available consistently across the required period and provide a common, reproducible marking convention for a daily-frequency futures hedge.
+The hedge is held in March ES before **12 March 2020**. After this date, it is held in June ES (post-roll date). Settlement changes are calculated separately within each contract. P&L for the interval ending on the roll date is genreated by the March contract held over the interval. After this, P&L is recognised, the March position is closed and the June contract hedge is established.
 
-The active hedge is held in March ES before **12 March 2020** and June ES from the roll date onward. Crucially, March and June settlement changes are first calculated independently within each contract.
+Price-levle difference between the two contracts is therefore not recognised as P&L, ensuring correct accounting. This also ensures that the hedge remains contract-consistent. 
 
-For the interval ending on the roll date, hedge P&L is therefore generated by the March contract that was actually held over that interval. Only after that P&L has been recognised is the March position closed and the new June hedge established.
-
-This prevents the level difference between two distinct futures contracts from being incorrectly recognised as trading P&L at the roll.
-
-The resulting hedge return is therefore a contract-consistent settlement-to-settlement return rather than the change in a mechanically spliced futures price series.
-
-This convention means that hedge P&L represents settlement-to-settlement futures performance rather than realised intraday execution P&L. Transaction timing, bid-ask effects, intraday basis movement and execution slippage are intentionally outside the scope of the theoretical benchmark.
+Therefore, the theoretical notebook's hedge P&L represents settlement-to-settlement futures performance.
 
 ### Methodology
 
 The model separates three related but distinct accounting problems:
 
-1. **option valuation**, using Black-Scholes;
-2. **option P&L attribution**, using previous-period Greeks; and
-3. **strategy P&L**, combining the actual theoretical option repricing with ES hedge P&L and futures transaction costs.
+1. **Option valuation**, using Black-Scholes.
+2. **Option P&L attribution**, using previous-period Greeks. 
+3. **Strategy P&L**, combining the actual theoretical option repricing with ES hedge P&L and futures transaction costs.
 
-The Greek attribution is diagnostic rather than a substitute for actual model repricing. Total option P&L is always calculated from the change in the theoretical straddle value. Delta, gamma and theta are then used to explain that change, with any unexplained amount assigned to a residual.
+The Greek attribution is diagnostic rather than a substitute for actual model repricing. Total option P&L is always calculated from the change in the theoretical straddle value. Delta, gamma and theta are then used to explain that change. Any unexplained amount is assigned to a residual.
 
 Similarly, the strategy's hedge P&L is calculated directly from the futures position and contract-specific settlement movement rather than inferred from option delta attribution.
 
@@ -161,10 +159,10 @@ $$
 
 with:
 
-* $$\(S_t\)$$: SPX level;
-* $$\(K\)$$: fixed 2,880 strike;
-* $$\(r\)$$: benchmark risk-free rate, set to zero;
-* $$\(\sigma_t\)$$: VIX9D divided by 100;
+* $$\(S_t\)$$: SPX level.
+* $$\(K\)$$: fixed 2,880 strike.
+* $$\(r\)$$: benchmark risk-free rate, set to zero.
+* $$\(\sigma_t\)$$: VIX9D divided by 100.
 * $$\(T_t\)$$: remaining calendar time to expiry.
 
 The theoretical straddle value is:
@@ -179,7 +177,7 @@ $$
 \text{P\\&L}^{option}_t = (V_t-V_{t-1})\times100
 $$
 
-At expiry, the call and put are valued directly at intrinsic value rather than evaluating the Black-Scholes expressions as \(T\rightarrow0\). Gamma and theta are also set to zero after expiry. This provides clean terminal behaviour and avoids numerical instability around zero time to maturity.
+At expiry, the call and put are valued at intrinsic value rather than evaluating the Black-Scholes expressions as \(T\rightarrow0\). Gamma and theta are also set to zero after expiry. This avoids numerical instability around zero time to maturity.
 
 The initial theoretical straddle value is approximately **218.29 SPX points**, equivalent to approximately **$21,829** using the $100 SPX option multiplier.
 
@@ -227,7 +225,7 @@ $$
 Residual_t = \text{P\\&L}^{option}_t-\text{P\\&L}^{\Delta}_t-\text{P\\&L}^{\Gamma}_t-\text{P\\&L}^{\Theta}_t
 $$
 
-The residual is deliberately **not** labelled vega P&L. Because the option is repriced each day using a changing VIX9D input, the residual can contain the effect of volatility-input changes, higher-order Greeks, interaction terms and error from the discrete second-order approximation.
+The residual is intentionally **not** labelled vega P&L. Due to the fact that the option is repriced each day using a changing VIX9D input, the residual can contain the effect of **volatility-input changes, higher-order Greeks, interaction terms and error from the discrete second-order approximation.**
 
 Futures hedge P&L is calculated separately:
 
@@ -251,16 +249,16 @@ The notebook contains explicit controls intended to prevent mechanically plausib
 
 **Input integrity**
 
-* required ES columns are checked before the strategy runs;
-* duplicate futures dates trigger an error;
-* missing March or June settlement observations trigger an error;
-* SPX and VIX9D observations must remain positive;
-* trade inception and option expiry must both exist in the aligned dataset;
-* negative time to expiry is prohibited.
+* Required ES columns are checked before the strategy runs.
+* Duplicate futures dates trigger an error.
+* Missing March or June settlement observations trigger an error.
+* SPX and VIX9D observations must remain positive.
+* Trade inception and option expiry must both exist in the aligned dataset.
+* Negative time to expiry is prohibited.
 
 **Contract-roll integrity**
 
-Settlement differences are calculated independently for ESH20 and ESM20 before the active contract is selected. The contract held at the start of each interval determines the settlement change used for hedge P&L. The roll therefore cannot create artificial P&L from the price-level difference between March and June futures.
+Settlement differences are calculated separately for ESH20 and ESM20 before the active contract is selected. The contract held at the start of each interval decides the settlement change used for hedge P&L. This ensures the roll can not create artificial P&L from the price-level difference between March and June futures.
 
 **P&L sequencing**
 
@@ -274,15 +272,15 @@ $$
 Delta + Gamma + Theta + Residual = Option\ \text{P\\&L}
 $$
 
-using tight numerical tolerances. The backtest raises an exception if the attribution does not reconcile.
+The backtest raises an exception if the attribution does not reconcile.
 
 **Terminal controls**
 
 The notebook verifies that:
 
-* the final observation is the specified option-expiry date;
-* the final futures position equals zero;
-* the final trade is explicitly recorded as `EXPIRY_CLOSE`.
+* The final observation is the specified option-expiry date.
+* The final futures position equals zero.
+* The final trade is explicitly recorded as `EXPIRY_CLOSE`.
 
 These checks prevent a reported terminal strategy value from containing an unrecognised open hedge position.
 
