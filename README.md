@@ -482,29 +482,136 @@ However, the results show that the same expiry date, roll accounting and hedge c
 
 ### Objective
 
+The obective of the notebook `Sensitivity_Robustness_Analysis.ipynb` is to test whether the conclusions of the executable gamma-scalping backtest remain robust once the modelling and execution assumptions implemented in the executable backtest are altered. 
+
+The executable backtest notebook `OptionsVolatilityAnalysis_ExecutableBacktest.ipynb` is used as the base-case scenario from which to vary sensitivities. Assumptions are changed systematically with the intention of isolating the effects of each change on the core outputs: Total Strategy P&L, Option P&L, ES Hedge P&L, Transaction Costs, ES turnover, Rehedges, Granularity Holds, the mean (absolute) residual delta and the maximum (absolute) residual delta.
+
+The sensitivies considered are:
+
+- The residual delta-hedging band (0.00, 0.10 (base-case), 0.25, 0.30, 0.35, 0.40, 0.50)
+- ES transaction costs and execution friction costs. This is implemented by scaling commission, spread and slippage costs together by using a multiplier (0.0, 0.5, 1.0, 2.0, 4.0).
+- The volatility input used to reprice the straddle daily. This is implemented by shifting the VIX9D volatility proxy by fixed values (-10, -5, 0, +5, +10), while the underlying SPX and ES observations remain unchanged.
+- Hedge Granularity: this compares the effect of comparing fractional ES contract trading to the implementable integer-only contract trading. *This similar as the theoretical vs executable backtest notebook comparison, but here isolates this single variable* **This is interesting as it can be used to evaluate the impact of strategy scale: as position size increases, one additional contract represents a smaller proportion of the overall hedge. This allows finer adjustments to residual delta (as in fractional hedging). For example, moving from 100 to 101 ES contracts is a much smaller proportional hedge adjustment than moving from 1 to 2 ES contracts (smaller strategy scale).
+
 ### Delta-Band Sensitivity
+
+Delta-band sensitivity is evaluated by changing the delta rehedge band to the values: 0.00, 0.10 (base-case), 0.25, 0.30, 0.35, 0.40 and 0.50, while leaving other parameters unchanged. This isolates the impact of changing the delta rehedge band on core ouptuts. 
+
+The results of this are displayed below:
+
+| Delta Band | Total P&L | Option P&L | ES Hedge P&L | Transaction Costs | ES turnover | Rehedges | Granularity Holds | Mean Abs Residual Delta | Max Abs Residual Delta |
+|-----:|-----------------:|-------------:|--------------:|---------:|-------:|--:|--:|-------:|-------:|
+| 0.00 | **$7,821.1186**  | $35,678.6186 | -$27,775.0000 | $82.5000 | 6.0000 | 2 | 4 | 0.0747 | 0.1840 |
+| 0.10 | **$7,821.1186**  | $35,678.6186 | -$27,775.0000 | $82.5000 | 6.0000 | 2 | 1 | 0.0747 | 0.1840 |
+| 0.25 | **$7,821.1186**  | $35,678.6186 | -$27,775.0000 | $82.5000 | 6.0000 | 2 | 0 | 0.0747 | 0.1840 |
+| 0.30 | **$7,821.1186**  | $35,678.6186 | -$27,775.0000 | $82.5000 | 6.0000 | 2 | 0 | 0.0747 | 0.1840 |
+| 0.35 | **$21,411.1186** | $35,678.6186 | -$14,212.5000 | $55.0000 | 4.0000 | 1 | 0 | 0.0894 | 0.3160 |
+| 0.40 | **$21,598.6186** | $35,678.6186 | -$14,025.0000 | $55.0000 | 4.0000 | 1 | 0 | 0.1478 | 0.3967 |
+| 0.50 | **$27,276.1186** | $35,678.6186 | -$8,375.0000  | $27.5000 | 2.0000 | 0 | 0 | 0.2562 | 0.4998 |
+
+The results show the strategy is initially insensitive to changes in the residual-delta band. Bands between 0.00 and 0.30 all produce the same total P&L of **$7821.12**, Es turnover of **6 contracts** and maximum residual delta od **0.1840.** This is due to the constraint of integer ES sizing - this constrains the hedge independently of the band. A narrower band identifies more delta-band breaches, but these do not result in a trade as the nearest executable whole number remains unchanged. This is apparent in the 0.00 band especially, where there are **four `GRANULARITY_HOLD` events**. 
+
+Results change materially once the band reaches 0.35. ES turnover falls from **6 to 4 ES contracts** and total P&L increases to **$21,411.12**, increasing further to **$21,598.62** at the 0.40 band. The increase in the P&L is driven mainly by a less negative ES contract contribution, as the option P&L remains constant at **$35,678.6186** across all scenarios. Lower turnover is noted too, but is not a significant factor in affecting overall P&L.
+
+However, higher P&L should not be interpreted as evidence that less frequent hedging is preferable. Mean absolute residual rises as the delta bands become larger - from **0.1840 at 0.00-0.30** to **0.3160, 0.3967 and 0.4998** at the **0.35, 0.40 and 0.50** bands respectively.
+
+This sensitivity test, therefore, shows a trade-off between **hedge precision and realised P&L** over this backtest. Narrower bands below the base-level (0.10) provide little benefit as integer contract sizing prevents finer hedge adjustment and wider delta-rehedge bands leave greater residual delta exposure.
 
 ### Transaction-Cost Sensitivity
 
+Transaction-cost sensitivity is evaluated by scaling **combined ES commissions and spread/slippage costs by 0.00x, 0.50x, 1.00x (base-case), 2.00x and 4.00x**, while leaving all other parameters unchanged. Scaling these components together provides a combined transaction-cost stress test and isolates the effect of different execution-cost assumptions on strategy P&L and other core outputs.
+
+The results of this are displayed below:
+
+| Cost Multiplier | Total P&L | Option P&L | ES Hedge P&L | Transaction Costs | ES Turnover | Rehedges | Granularity Holds | Mean Abs Residual Delta | Max Abs Residual Delta |
+|------:|-----------------:|-------------:|--------------:|---------:|-------:|--:|--:|-------:|-------:|
+| 0.00 | **$7,903.6186** | $35,678.6186 | -$27,775.0000 | $0.0000 | 6.0000 | 2 | 1 | 0.0747 | 0.1840 |
+| 0.50 | **$7,862.3686** | $35,678.6186 | -$27,775.0000 | $41.2500 | 6.0000 | 2 | 1 | 0.0747 | 0.1840 |
+| 1.00 | **$7,821.1186** | $35,678.6186 | -$27,775.0000 | $82.5000 | 6.0000 | 2 | 1 | 0.0747 | 0.1840 |
+| 2.00 | **$7,738.6186** | $35,678.6186 | -$27,775.0000 | $165.0000 | 6.0000 | 2 | 1 | 0.0747 | 0.1840 |
+| 4.00 | **$7,573.6186** | $35,678.6186 | -$27,775.0000 | $330.0000 | 6.0000 | 2 | 1 | 0.0747 | 0.1840 |
+
+The results show that the strategy is relatively insensitive to the transaction-cost assumptions tested. Total P&L falls from **$7,903.62 with zero transaction costs** to **$7,821.12 in the base case** and remains positive at **$7,573.62 when costs are increased to four times the base-case level**.
+
+Option P&L, ES hedge P&L, turnover, rehedges and residual-delta measures remain identical across all scenarios. This occurs as transaction costs do not affect the hedge decision rule in the model. The same trades are therefore executed in each scenario - only the monetary cost attached to those trades changes.
+
+Transaction costs increase linearly from **$0.00** in the zero-cost scenario to **$330.00** at four times the base-case assumption. The resulting change in total P&L is small compared to the much larger option and futures hedge P&L components. This reflects the relatively low turnover of the executable strategy over the backtest, with only **6 ES contracts of total turnover**.
+
+This sensitivity test therefore suggests that the executable result is **robust to materially higher transaction-cost assumptions over this backtest window**. However, this should not be interpreted as evidence that transaction costs are generally unimportant to gamma-scalping strategies. Their economic significance would increase with greater hedge frequency, higher turnover or different execution conditions. The test specifically shows that *transaction costs are not a major driver of the result under the trading frequency and hedge path generated by this executable base case.*
+
 ### Volatility-Input Sensitivity
+
+Volatility-input sensitivity is evaluated in two ways. First, the full VIX9D volatility path is shifted by **-10, -5, 0 (base-case), +5 and +10 volatility points**, while leaving the underlying SPX and ES observations and all other parameters unchanged. This tests how dependent the strategy result is on the level of the volatility proxy used to price the straddle and calculate its Greeks.
+
+The results of the parallel volatility shifts are displayed below:
+
+| IV Shift (vol pts) | Total P&L | Option P&L | ES Hedge P&L | Transaction Costs | ES Turnover | Rehedges | Granularity Holds | Mean Abs Residual Delta | Max Abs Residual Delta |
+|------:|-----------------:|-------------:|--------------:|---------:|-------:|--:|--:|-------:|-------:|
+| -10 | **$11,622.3759** | $39,479.8759 | -$27,775.0000 | $82.5000 | 6.0000 | 2 | 0 | 0.0580 | 0.1868 |
+| -5 | **$9,721.5841** | $37,579.0841 | -$27,775.0000 | $82.5000 | 6.0000 | 2 | 1 | 0.0656 | 0.1579 |
+| 0 | **$7,821.1186** | $35,678.6186 | -$27,775.0000 | $82.5000 | 6.0000 | 2 | 1 | 0.0747 | 0.1840 |
+| +5 | **$5,921.0156** | $33,778.5156 | -$27,775.0000 | $82.5000 | 6.0000 | 2 | 1 | 0.0834 | 0.2102 |
+| +10 | **$4,021.3099** | $31,878.8099 | -$27,775.0000 | $82.5000 | 6.0000 | 2 | 2 | 0.0919 | 0.2337 |
+
+The results show a clear relationship between the assumed volatility level and strategy P&L. Reducing the VIX9D input by **10 volatility points** increases total P&L from the base-case **$7,821.12** to **$11,622.38**, while increasing the volatility input by **10 points** reduces total P&L to **$4,021.31**.
+
+This change is driven entirely by option P&L across the scenarios. ES hedge P&L remains constant at **-$27,775.00**, transaction costs remain **$82.50** and turnover remains **6 contracts**. Although changing the volatility input changes option delta and residual-delta measurements, these changes are not large enough to alter the hedge path over the tested volatility range.
+
+The relationship with option P&L occurs because changing the volatility level changes the theoretical value paid for the straddle at inception and its subsequent repricing, while the option still settles at the same intrinsic value at expiry. A lower volatility path therefore produces a lower initial theoretical option value and, over this realised SPX path, a larger cumulative option gain. Conversely, a higher assumed volatility level increases the initial theoretical value of the straddle and reduces the cumulative option P&L realised by expiry.
+
+The test therefore shows that the magnitude of strategy P&L is **materially sensitive to the level of the VIX9D volatility proxy**, although the strategy remains profitable under all shifts tested, whether positive or negative. This reinforces the limitation of using VIX9D rather than strike-specific implied volatility: the volatility input affects the theoretical cost and repricing of the option position and therefore has a significant influence on the reported strategy return.
+
+A second volatility-input test compares the **dynamic VIX9D base case** with a scenario where the initial VIX9D value is held constant for the full life of the option. This isolates the effect of allowing the volatility input to change through time rather than testing a different starting volatility level.
+
+The results are displayed below:
+
+| Volatility Input | Total P&L | Option P&L | ES Hedge P&L | Transaction Costs | ES Turnover | Rehedges | Granularity Holds | Mean Abs Residual Delta | Max Abs Residual Delta |
+|:-----------------|-----------------:|-------------:|--------------:|---------:|-------:|--:|--:|-------:|-------:|
+| Dynamic VIX9D | **$7,821.1186** | $35,678.6186 | -$27,775.0000 | $82.5000 | 6.0000 | 2 | 1 | 0.0747 | 0.1840 |
+| Frozen at inception | **$19,193.6186** | $35,678.6186 | -$16,375.0000 | $110.0000 | 8.0000 | 4 | 0 | 0.0323 | 0.1154 |
+
+**Total option P&L remains identical at $35,678.62 in both scenarios**. This is because both cases have the same volatility input at the trade start date and the option settles at the same intrinsic value at expiry. Changing the intermediate volatility path therefore *changes daily option valuations and Greeks*, but not the cumulative change between the common initial value and terminal payoff.
+
+The main difference instead occurs through the hedge. Freezing volatility at inception changes the option-delta path, resulting in **4 rehedges and 8 contracts of turnover**, compared with **2 rehedges and 6 contracts** in the dynamic VIX9D base case. ES hedge P&L consequently improves from **-$27,775.00** to **-$16,375.00**, while transaction costs rise modestly from **$82.50 to $110.00**. Mean absolute residual delta also falls from **0.0747 to 0.0323**.
+
+The frozen-volatility scenario demonstrates that volatility input affects the strategy through more than option valuation alone. Changes in implied volatility alter Black-Scholes delta and affect the timing and size of the ES hedge. The substantially higher P&L under frozen volatility **should not be interpreted as evidence that holding volatility constant is preferable or realistic**. It shows instead that the strategy is highly dependent on implied volatility through its impact on the ES hedge.
 
 ### Hedge Granularity
 
+Hedge-granularity sensitivity compares the executable integer only ES hedge with a fractional-contract hedge, while maintaining the same pricing, timing, rehedging and transaction-cost framework. This is similar to the theoretical-versus-executable comparison, but isolates **hedge granularity as a single variable**.
+
+The results are displayed below:
+
+| Hedge Sizing | Total P&L | Option P&L | ES Hedge P&L | Transaction Costs | ES Turnover | Rehedges | Granularity Holds | Mean Abs Residual Delta | Max Abs Residual Delta |
+|:-------------|----------:|-----------:|-------------:|------------------:|------------:|---------:|------------------:|------------------------:|-----------------------:|
+| Integer | **$7,821.1186** | $35,678.6186 | -$27,775.0000 | $82.5000 | 6.0000 | 2 | 1 | 0.0747 | 0.1840 |
+| Fractional | **$18,297.4763** | $35,678.6186 | -$17,295.6342 | $85.5081 | 6.2188 | 5 | 0 | 0.0135 | 0.0912 |
+
+The fractional hedge produces a materially higher total P&L of **$18,297.48**, compared with **$7,821.12** under integer sizing. Option P&L remains unchanged at **$35,678.62**, showing that the difference is driven by the ES hedge. Hedge P&L improves from **-$27,775.00** to **-$17,295.63** when fractional sizing is allowed.
+
+Fractional sizing also substantially improves hedge precision (hence leading to increased strategy P&L). Mean absolute residual delta falls from **0.0747 to 0.0135**, while maximum residual delta falls from **0.1840 to 0.0912**. This occurs because fractional ES positions allow the hedge to move closer to the theoretical delta-neutral target when the rehedge band is breached.
+
+The test therefore confirms that **integer-contract granularity is a major driver of the lower executable backtest result**. It also has implications for strategy scale: as the strategy becomes larger, one ES contract represents a smaller proportion of the required hedge, allowing finer adjustments to residual delta.
+
 ## Reproducing the Analysis
 
-The current theoretical benchmark requires Python, access to the SPX and VIX9D historical series and the locally stored contract-specific ES dataset.
+The project is run using Python. Access to the SPX and VIX9D historical data series and locally stored contract-specific ES dataset are also required.
 
-The notebook:
+The theoretical notebopk:
 
-1. downloads daily `^GSPC` and `^VIX9D` observations for the configured backtest period using `yfinance`;
-2. loads `Data/es_futures_mar2020.csv`;
-3. validates and aligns the market datasets;
-4. constructs the fixed-strike straddle and declining time-to-expiry series;
-5. calculates Black-Scholes prices and Greeks;
-6. runs the fractional-ES delta-hedging loop;
-7. reconciles option attribution and terminal hedge state;
-8. calculates realised volatility and summary statistics; and
-9. generates the strategy P&L visualisations.
+1. Downloads daily `^GSPC` and `^VIX9D` observations for the backtest period (10-20 March 2020) using `yfinance`.
+2. Loads `Data/es_futures_mar2020.csv`.
+3. Validates and aligns the market datasets.
+4. Constructs the fixed-strike straddle and declining time-to-expiry series.
+5. Calculates Black-Scholes prices and Greeks.
+6. Runs the fractional-ES delta-hedging loop.
+7. Reconciles option attribution and terminal hedge state.
+8. Calculates realised volatility and summary statistics.
+9. Generates the strategy P&L visualisations.
+
+The executable notebook retains the same underlying option position, market data, valuation framework and P&L accounting. However, the fractional hedge is replaced by integer-only ES positions. Explicit commissions are also applied, alongside bid-ask spread and slippage considerations. Contract rolls are executed as two distinct opening and closing transactions, with transaction costs applied to both legs.
+
+The sensitivity notebook varies selected hedge, cost and volatility assumptions. These are applied to the executable notebook (not the theoretical notebook) with the executable notebook used as a base-case scenario before any sensitivities are altered.
 
 The local ES file must contain, at minimum:
 
@@ -514,9 +621,9 @@ ESH20_Settlement
 ESM20_Settlement
 ```
 
-The notebook will raise an error if these required settlement fields contain missing values or duplicate dates.
+The market-data validation will raise an error if required settlement fields contain either missing values or duplicate dates.
 
-SPX and VIX9D are currently retrieved at run time rather than frozen locally. Exact reproducibility is therefore partially dependent on the continued availability and consistency of the upstream `yfinance` historical series. A fully frozen research dataset would remove this external dependency if exact archival reproducibility becomes necessary.
+SPX and VIX9D are retrieved at run time rather than frozen locally. Exact reproducibility is therefore dependent on the continued availability and consistency of the `yfinance` historical series. A fully frozen research dataset would remove this external dependency if exact reproducibility becomes necessary.
 
 ## Repository Structure
 
@@ -526,24 +633,25 @@ The project follows the planned three-stage research structure:
 OptionsVolatilityAnalysis/
 │
 ├── OptionsVolatilityAnalysis_Theoretical_FractionalES.ipynb
+├── OptionsVolatilityAnalysis_ExecutableBacktest.ipynb
+├── Sensitivity_Robustness_Analysis.ipynb
+├── PrepareESData.ipynb
 │
 ├── Data/
 │   └── es_futures_mar2020.csv
 │
-├── OptionsVolatilityAnalysis_Practical_IntegerES.ipynb      
-├── OptionsVolatilityAnalysis_SensitivityAnalysis.ipynb      
-│
 ├── README.md
-└── requirements.txt
+├── requirements.txt
+├── .gitignore
+└── LICENSE
+
 ```
 
-The theoretical notebook remains the controlled benchmark. The practical and sensitivity notebooks are deliberately separated so that execution realism and robustness analysis do not alter the assumptions of the reference model.
-
-The practical engine is intended to be refactored into a callable backtest function before systematic sensitivity testing is introduced. Shared source modules can be added later if duplication across notebooks becomes sufficiently large to justify further abstraction.
+The theoretical notebook remains the controlled benchmark. The executable notebook introduces greater trading realism, while the sensitivity notebook uses this as its base case without altering the benchmark.
 
 ## Requirements
 
-Core Python dependencies used by the theoretical notebook are:
+Core Python dependencies used by the analysis are:
 
 ```text
 yfinance
@@ -552,18 +660,18 @@ numpy
 matplotlib
 ```
 
-The notebook also uses Python's standard-library `statistics.NormalDist` implementation for the normal cumulative distribution function.
+The analysis also uses Python's `statistics.NormalDist` implementation for the normal cumulative distribution function.
 
 A working Jupyter environment is required to execute the notebook interactively.
 
-The theoretical benchmark additionally requires the locally stored ES settlement dataset at:
+The theoretical, executable and sensitivity analyses additionally requires the locally stored ES settlement dataset at:
 
 ```text
 Data/es_futures_mar2020.csv
 ```
 
-Internet access is required when rerunning the current implementation because SPX and VIX9D observations are downloaded using `yfinance`.
+Internet access is required when running the current implementation because SPX and VIX9D historical data is downloaded using `yfinance`.
 
 ## Disclaimer
 
-This repository is a research and educational project and does not constitute investment advice, a trading recommendation or evidence of expected future performance. Results from the theoretical benchmark depend on model assumptions, historical data, simplified transaction-cost treatment and a short stressed-market sample. The theoretical strategy permits fractional futures positions and does not represent a directly executable historical trading strategy.
+This repository is for research and educational purposes. It does not constitute investment advice or a trading recommendation. Backtest results depend on histroical data inputs and backtest period, modelling assumptions made and implementation choices. Therefore, this should not be interpreted as evidence of future performance.
