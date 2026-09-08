@@ -177,7 +177,7 @@ $$
 \text{P\\&L}^{option}_t = (V_t-V_{t-1})\times100
 $$
 
-At expiry, the call and put are valued at intrinsic value rather than evaluating the Black-Scholes expressions as \(T\rightarrow0\). Gamma and theta are also set to zero after expiry. This avoids numerical instability around zero time to maturity.
+At expiry, the call and put are valued at intrinsic value rather than evaluating the Black-Scholes expressions as $$\(T\rightarrow0\)$$. Gamma and theta are also set to zero after expiry. This avoids numerical instability around zero time to maturity.
 
 The initial theoretical straddle value is approximately **218.29 SPX points**, equivalent to approximately **$21,829** using the $100 SPX option multiplier.
 
